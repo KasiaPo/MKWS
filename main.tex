@@ -1,0 +1,218 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage{comment} % enables the use of multi-line comments (\ifx \fi) 
+\usepackage{lipsum} %This package just generates Lorem Ipsum filler text. 
+\usepackage{fullpage} % changes the margin
+\usepackage{siunitx}
+\usepackage[final]{graphicx}
+\usepackage[section]{placeins}
+\setlength\parindent{0pt}
+
+\begin{document}
+%Header-Make sure you update this information!!!!
+
+\hspace{0pt}
+\vfill
+\noindent
+{\Huge Influence of inlet air speed on combustion\\ temperature and thrust in Cantera} \\\\
+Katarzyna Pobikrowska
+\vfill
+\hspace{0pt}
+{\centering
+Faculty of Power and Aeronautical Engineering \\
+Warsaw University of Technology \\
+Computational methods in combustion \\
+}
+
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+The purpose of the project was to evaluate the influence of inlet air speed on combustion temperature and thrust using Cantera. During the evaluation a simple model of inlet, combustion chamber and nozzle were used.\\
+
+Calculations were performed with following parameters:
+
+\begin{itemize}
+\item Stoichometric methane - air mixture
+\item Volume of combustion chamber 1 m\textsuperscript{3}
+\item Air parameters for 0 altitude
+\end{itemize}
+
+\section{Literature}
+
+Estimated calculations of thrust in jet engines are often based on empiric data of combustion heat. In this approach Cantera abilities were explored to acknowledge the error that comes with Cantera method of calculating reaction temperature. The idea of injecting radical hydrogen atoms into combustion chamber to initialize combustion comes from Cantera combustor.py example.
+
+\section{Mathematical model}
+\begin{figure}[h]
+\includegraphics[scale=0.8]{figure}
+\caption{Simple model of adiabatic inlet, combustion chamber and adiabatic nozzle}
+\end{figure}
+
+The stoichiometric reaction of complete combustion of methane in oxygen is as follows
+\[ 2CH_4 + 4O_2 \rightarrow 4H_2 O+2CO_2 \]
+Considering that the content of oxygen in air is 21\% the theoretical oxygen demand for combustion of methane in air is
+\[\mu_T = \frac{4\cdot (1 + \frac{0.79}{0.21})}{2}=9,52 \Big[ \si[per-mode = fraction]{\mole\per\mole} \Big] \]
+The equivalence ratio was set to 1.\\\\*
+\noindent
+Calculations consisted of 3 phases:\\
+1. Air parameters were calculated according to specified Mach number \\
+2. Air, fuel and igniter were added to combustion chamber filled initially with air \\
+3. Steady-state temperature of methane combustion is used to calculate thrust\\\\
+First, velocity of air was calculated according to Mach number and speed of sound, namely
+\[v=M \cdot a = M \cdot \sqrt{\kappa \cdot R \cdot T_0}\]
+where
+\[\kappa = \frac{c_v}{c_p}\]
+Then the air was set to a higher enthalpy caused by supersonic flow according to
+\[h=h_0 + \frac{v^2}{2}\]
+Total pressure of air
+\[p=p_0 \cdot (\frac{T}{T_0})^\frac{\kappa}{\kappa-1}\]
+\\\\
+Mass of air flowing through the 'engine' was set to 
+\[m_a \Big [ \si[per-mode = fraction]{\kilogram\per\m} \Big] =9.52 \cdot \rho_a\cdot A \]
+As such value was the most convenient for calculating combustion temperature\\\\
+Mass of fuel
+\[m_f \Big [ \si[per-mode = fraction]{\kilogram\per\m} \Big] = \frac{m_a \cdot \phi}{9.52} \]
+Area was set to 0.1.\\
+Total mass flow ratio is as follows
+\[m = m_a + m_f\]
+Velocity of outlet air was calculated as
+\[v_e \Big [ \si[per-mode = fraction]{\m\per\second} \Big] = \sqrt{2 \cdot c_p \cdot T_0 \cdot (1-\frac{T}{T_0})}\]
+And thrust as
+\[T \Big [ \si[per-mode = fraction]{\newton} \Big] = m \cdot v_e \cdot (v_e-v_0) - \frac{m}{\rho}\cdot (p_e-p_0)\]
+Also, propulsion efficiency
+\[\eta = \frac{2}{1+\frac{v_e}{v_0}}\]
+
+
+\section{Code description}
+Code consists of three parts.\\
+
+First part contains calculating parameters according to Mach number, so pressure, density, temperature and speed of sound. Firstly, air parameters are set to those of static air, namely temperature of 300K and pressure of 1 atm. Then, air was set using changed enthalpy and changed pressure.\\
+
+Initially combustion chamber was filled with air with parameters evaluated for a certain Mach number.\\
+
+Second part is chemical reaction (combustion). The aim was to get steady state temperature. It is achieved by supplying the combustion reactor with air at stagnation temperature, methane at 300K and a radical that initiates the reaction. In this solution hydrogen at 300K was used. The idea comes from \cite{three} \\\\
+Hydrogen mass flow ratio was a function of time according to normal distribution
+\[\lambda_t = a \cdot  e^{\frac{-(t-t0)^2}{2\cdot fw^2}} \]
+where a is amplitude and fw is standard deviation. Parameters were chosen to produce a quick injection at second second of the process.\\
+
+Combustion lasts for 4 seconds, which, as turned out, was enough for the temperature to get to a steady state.\\\\
+Third part consists of calculating thrust and plotting.\\\\
+Temperature, specific gas constant and kappa were acquired from Cantera air database.\\\\
+Cantera functions used for calculations were:
+
+\begin{itemize}
+\item Reservoirs for air, fuel, igniter and exhaust.
+\item Reactor for combustion chamber
+\item Valve for outlet from reactor
+\item Mass flow controller for setting mass flow rate to the reactor
+\end{itemize}
+
+Value of valve pressure drop was set to 1, which provides pressure on outlet with the same value as pressure on inlet.
+
+\section{Results}
+
+Figure \ref{fig:time} shows temperature versus time figures for different Mach number.\\
+
+Up to Mach 3 the temperature of air flowing through chamber was too low to initiate combustion, so atomic hydrogen acting as igniter was introduced. From a certain point total temperature of air reached a value which was enough to start a combustion process. Hydrogen was still being added to the mixture but its' effect was negligible on the process.\\
+
+For Mach 3.34 there's still a certain temperature bump visible which corresponds to hydrogen injection but as can be seen it does not change the steady-state temperature value.\\
+
+The subject of interest was to find the value of steady state temperature, and as can be seen from the figures, 4 seconds were indeed enough for the solution to get to a steady state.\\
+
+Temperature at t = 0 is equal to temperature of air at certain Mach number. From the figures can also be evaluated initial temperature sufficient to start combustion process without igniter, which is around 1200K.\\
+
+As can be seen from figure \ref{fig:thrust} from a point of certain Mach number the thrust approaches zero. Calculations were performed only to achieve positive thrust. The explanation for negative thrust is as follows: for a certain inlet area, fuel and equivalence ratio the engine can work up until a boundary Mach number. From figure \ref{fig:temp} can be seen a rate of growth for temperature versus Mach number. Outlet velocity is a function of outlet temperature and as Mach grows expression
+\[v_e - v_0 = v_e - a \cdot Ma\]
+approaches 0 for the growth of temperature is slower than growth of inlet velocity.\\
+
+
+
+\begin{figure}
+\begin{tabular}{ll}
+\centering
+\includegraphics[scale=0.5]{M_0_00}
+&
+\includegraphics[scale=0.5]{M_1_00}
+\\
+\includegraphics[scale=0.5]{M_2_00}
+&
+\includegraphics[scale=0.5]{M_3_00}
+\\
+\includegraphics[scale=0.5]{M_4_00}
+&
+\includegraphics[scale=0.5]{M_5_00}
+\\
+\includegraphics[scale=0.5]{M_6_00}
+
+
+\end{tabular}
+\caption{Temperature versus time profiles for different Mach numbers}
+\label{fig:time} 
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{Temperature_over_Mach}
+\caption{Steady state temperature versus Mach number}
+\label{fig:temp}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{Mass_flow_rate_over_Mach}
+\caption{Mass flow rate versus Mach number}
+\label{fig:mass}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{Thrust_over_Mach}
+\caption{Thrust versus Mach number}
+\label{fig:thrust}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{Thrust_over_mass_flow_rate_over_Mach}
+\caption{Thrust over mass flow rate versus Mach number}
+\label{fig:thrustm}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{Efficiency_over_Mach}
+\caption{Efficiency versus Mach number}
+\label{fig:eff}
+\end{figure}
+
+\section{Validation}
+
+To validate the results of combustion it's sufficient to compare calculated methane combustion temperature for Mach = 0 to its experimental value. Value of experimental temperature was obtained from \cite{one}. Experimental value may differ for different sources.
+\[f = \frac{T_{calc}-T_{exp}}{T_{exp}} = \frac{1963-1752}{1963} = 10,7 \%\]
+
+To evaluate correctness of calculation of thrust figure \ref{fig:thrust} can be compared to a theoretical thrust curve on figure \ref{fig:teor}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.3]{thrust}
+\caption{Thrust versus Mach number (from \cite{two}) }
+\label{fig:teor}
+\end{figure}
+
+\section{Summary}
+The aim of this paper was to explore Cantera's ability to calculate in changing conditions, in this case changing air speed, pressure and density. Cantera proved to be able to correctly calculate combustion temperature for various initial reactor temperatures. The temperature, and then thrust curve show a correct response to growing Mach number.  The final validation is a comparison of theoretical and computed thrust as has been shown in 'Validation' section of this paper.
+
+
+\begin{thebibliography}{9}
+\bibitem{one} Adiabatic flame temperature - Wikipedia\\
+https://en.wikipedia.org/wiki/Adiabatic\_flame\_temperature
+\bibitem{two}  Book - unable to find author, page 26\\
+http://bcpw.bg.pw.edu.pl/Content/4566/03sws\_wielkosci.pdf
+\bibitem{three} Cantera examples\\http://www.cantera.org/docs/sphinx/html/cython/examples/reactors\_combustor.html
+\end{thebibliography}
+
+\end{document}
